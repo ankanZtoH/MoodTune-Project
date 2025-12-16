@@ -119,17 +119,12 @@ if 'last_learning_details' not in st.session_state: st.session_state.last_learni
 
 # --- Logic Helper ---
 def handle_feedback_and_next(feedback):
-    if feedback == "skip_5s":
-         st.session_state.start_time += 5
-         st.rerun()
-         return
-    elif feedback == "skip_middle":
-         st.session_state.start_time = 120 # Approx middle for avg song
-         st.rerun()
-         return
+    # Logic for Skip: Treat as Negative Feedback & Next Song
+    # Removed the 'seeking' logic as per user request (Skip = Not Interested)
 
     next_mood_idx, reward = st.session_state.environment.step(st.session_state.last_action_idx, feedback)
     st.session_state.last_reward = reward
+    st.session_state.agent.history.append(reward) # Track for graph
     
     if st.session_state.last_state_idx is not None and st.session_state.last_action_idx is not None:
         old_v, new_v, td_err = st.session_state.agent.learn(
@@ -153,6 +148,24 @@ def handle_feedback_and_next(feedback):
     st.toast(f"Recorded: {feedback} (Reward: {reward})")
     play_music_for_mood(next_mood_name)
     st.rerun()
+
+# Helper for feedback without skipping (Added for Playlist logic)
+def handle_feedback_only(feedback):
+    next_mood_idx, reward = st.session_state.environment.step(st.session_state.last_action_idx, feedback)
+    st.session_state.last_reward = reward
+    st.session_state.agent.history.append(reward)
+    
+    if st.session_state.last_state_idx is not None and st.session_state.last_action_idx is not None:
+         # Learn but stay on same song
+         old_v, new_v, td_err = st.session_state.agent.learn(
+            st.session_state.last_state_idx, 
+            st.session_state.last_action_idx, 
+            reward, 
+            MOOD_TO_INDEX.get(st.session_state.detected_mood, 0) # Fixed: Convert string to index 
+         )
+         st.session_state.last_learning_details = { "old": old_v, "new": new_v, "td_error": td_err }
+         
+    st.toast(f"Added to Playlist! (Reward: {reward})")
 
 def play_music_for_mood(mood):
     mood = mood.lower()
@@ -231,6 +244,39 @@ with st.sidebar:
     st.subheader("Qtable:")
     q_df = pd.DataFrame(st.session_state.agent.q_table, index=MOODS, columns=MUSIC_Categories_List)
     st.dataframe(q_df.style.background_gradient(cmap="viridis", axis=1), height=200)
+
+    st.divider()
+
+    # --- Training Controls & Metrics ---
+    st.subheader("Training Manager")
+    
+    # Controls
+    tc1, tc2 = st.columns(2)
+    with tc1:
+        if st.button("Save Brain"):
+            if st.session_state.agent.save_model():
+                st.toast("Model Saved Successfully!")
+            else:
+                st.error("Save Failed")
+    with tc2:
+        if st.button("Reset Brain"):
+             import os
+             if os.path.exists("brain.npz"):
+                 os.remove("brain.npz")
+             st.session_state.agent.q_table = np.zeros((st.session_state.agent.n_states, st.session_state.agent.n_actions))
+             st.session_state.agent.history = []
+             st.session_state.agent.initialize_knowledge() # Re-apply heuristics
+             st.toast("Brain Reset to Factory Settings")
+             st.rerun()
+
+    # Metrics Plot
+    st.write("**Learning Curve (Rewards):**")
+    if st.session_state.agent.history:
+        # Calculate moving average for smoother line
+        data = pd.DataFrame({"Reward": st.session_state.agent.history})
+        st.line_chart(data)
+    else:
+        st.caption("Start giving feedback to see the learning curve!")
 
 
 # Main Layout (Middle and Right Columns)
@@ -350,20 +396,24 @@ with col_right:
                 with b1:
                     if st.button("❤️", help="Like (+10)"): handle_feedback_and_next("Like")
                 with b2:
-                    if st.button("⏩ 5s", help="Skip 5s"): handle_feedback_and_next("skip_5s")
+                    if st.button("⏭️ 5s", help="Skip Song (Listened 5s)"): handle_feedback_and_next("skip_immediate")
                 with b3:
-                    if st.button("⏩ Mid", help="Skip to Middle"): handle_feedback_and_next("skip_middle")
+                    if st.button("⏭️ Mid", help="Skip Song (Listened Half)"): handle_feedback_and_next("skip_mid")
                 with b4:
-                    if st.button("👎", help="Dislike (-5)"): handle_feedback_and_next("Wrong Vibe")
+                    if st.button("👎", help="Dislike (-5)"): handle_feedback_and_next("Dislike")
                 with b5:
                      if st.button("➕", help="Add to Playlist"): 
                          if not any(item['title'] == song['title'] for item in st.session_state.playlist):
                             st.session_state.playlist.append(song)
-                            st.toast("Added") 
+                            # RL Logic: Adding to playlist is a HUGE compliment (+20 reward)
+                            # We use a special handler that DOES NOT skip the song
+                            handle_feedback_only("add_to_playlist")
                          else: st.toast("Already in Playlist")
 
     # Show Video Option
     st.markdown("---")
+
+
     show_vid_btn = st.button(f"{'Hide' if st.session_state.show_video else 'Show'} video")
     if show_vid_btn:
         st.session_state.show_video = not st.session_state.show_video

@@ -12,6 +12,72 @@ class QLearningAgent:
         
         # Initialize Q-table with zeros
         self.q_table = np.zeros((n_states, n_actions))
+                                            self.history = [] # Training History
+        
+        # Try Loading, else Pre-train
+        if not self.load_model():
+             self.initialize_knowledge()
+
+    def save_model(self, filename="brain.npz"):
+        try:
+            np.savez(filename, q_table=self.q_table, history=self.history)
+            return True
+        except Exception as e:
+            print(f"Error saving model: {e}")
+            return False
+
+    def load_model(self, filename="brain.npz"):
+        try:
+            data = np.load(filename)                                                                                                                                                                                                                                                                                                                                                                                    
+            self.q_table = data['q_table']
+            self.history = list(data['history']) # Convert back to list
+            print("Model loaded successfully.")
+            return True
+        except FileNotFoundError:
+            return False
+        except Exception as e:
+            print(f"Error loading model: {e}")
+            return False
+
+    def initialize_knowledge(self):
+        """
+        Injects common-sense mappings into Q-Table so the agent isn't dumb at start.
+        """
+        from src.config import MOOD_TO_INDEX, MUSIC_Categories_List                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+        
+        # Helper to set Q-value safely
+        def set_q(mood, category, value):
+            if mood in MOOD_TO_INDEX and category in MUSIC_Categories_List:
+                m_idx = MOOD_TO_INDEX[mood]
+                c_idx = MUSIC_Categories_List.index(category)
+                self.q_table[m_idx, c_idx] = value
+
+        # --- HEURISTICS ---
+        # Happy People usually like:
+        set_q("happy", "Upbeat Pop", 5.0)
+        set_q("happy", "Party", 4.0)
+        set_q("happy", "Happy", 5.0)
+        
+        # Sad People usually like:
+        set_q("sad", "Sad Bollywood", 5.0)
+        set_q("sad", "Sad Punjabi", 4.0)
+        set_q("sad", "Lo-Fi", 2.0)
+        
+        # Angry People usually like (Catharsis or Calming):
+        set_q("angry", "Rock", 4.0)
+        set_q("angry", "Metal", 3.0)
+        set_q("angry", "Calm", 2.0) # To calm down
+        
+        # Calm People usually like:
+        set_q("calm", "Lo-Fi", 5.0)
+        set_q("calm", "Classical", 4.0)
+        
+        # Energetic People usually like:
+        set_q("energetic", "Workout", 5.0)
+        set_q("energetic", "Hip-Hop", 4.0)
+        
+        # Surprise (Wildcard): Slightly lower values to encourage exploration
+        set_q("surprise", "Party", 2.0)
 
     def choose_action(self, state_index):
         """

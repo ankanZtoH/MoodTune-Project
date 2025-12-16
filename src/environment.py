@@ -14,7 +14,7 @@ class MoodEnvironment:
         # logic: 
         #   If Sad + Happy Song -> 60% Happy, 20% Energetic, 20% Sad (Didn't work)
         #   If Sad + Sad Song -> 50% Calm (Catharsis), 30% Sad, 20% Depressed
-        
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
         # We'll use a simplified heuristic function instead of a full NxM density matrix for readability
         pass
 
@@ -28,6 +28,8 @@ class MoodEnvironment:
     def get_reward(self, feedback, recommended_category):
         if feedback == "Super Like":
             return 20
+        elif feedback == "add_to_playlist": # Explicit high reward
+            return 20
         elif feedback == "Like":
             return 10
         elif feedback == "completed":
@@ -37,7 +39,7 @@ class MoodEnvironment:
         elif feedback == "skip_immediate":
             return -10
         elif feedback == "Dislike":
-            return -5
+            return -10 # Increased penalty as requested
         elif feedback == "Wrong Vibe":
             return -10
         return 0
@@ -86,6 +88,11 @@ class MoodEnvironment:
                 next_mood_index = MOOD_TO_INDEX["angry"]
             elif current_mood == "calm":
                 next_mood_index = MOOD_TO_INDEX["anxious"]
+            elif current_mood == "sad":
+                 # As requested: Sad + Dislike -> Angry (Frustration)
+                next_mood_index = MOOD_TO_INDEX["angry"]
+            elif current_mood == "energetic":
+                next_mood_index = MOOD_TO_INDEX["tired"] # Drained
 
         # 10% Random Noise (Life happens)
         if random.random() < 0.1:
