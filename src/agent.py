@@ -12,7 +12,9 @@ class QLearningAgent:
         
         # Initialize Q-table with zeros
         self.q_table = np.zeros((n_states, n_actions))
-        self.history = [] # Training History
+        self.history = [] # Training History (Rewards)
+        self.mood_history = [] # History of visited states (moods)
+        self.action_history = [] # History of actions taken (categories)
         
         # Try Loading, else Pre-train
         if not self.load_model():
@@ -20,7 +22,12 @@ class QLearningAgent:
 
     def save_model(self, filename="brain.npz"):
         try:
-            np.savez(filename, q_table=self.q_table, history=self.history)
+            np.savez(filename, 
+                     q_table=self.q_table, 
+                     history=self.history,
+                     mood_history=self.mood_history,
+                     action_history=self.action_history
+            )
             return True
         except Exception as e:
             print(f"Error saving model: {e}")
@@ -30,10 +37,17 @@ class QLearningAgent:
         try:
             data = np.load(filename)
             self.q_table = data['q_table']
-            if 'history' in data:
-                self.history = list(data['history']) # Convert back to list
-            else:
-                self.history = []
+            
+            # Safe loading for history fields (backward compatibility)
+            if 'history' in data: self.history = list(data['history'])
+            else: self.history = []
+            
+            if 'mood_history' in data: self.mood_history = list(data['mood_history'])
+            else: self.mood_history = []
+            
+            if 'action_history' in data: self.action_history = list(data['action_history'])
+            else: self.action_history = []
+                
             print("Model loaded successfully.")
             return True
         except FileNotFoundError:
@@ -147,9 +161,13 @@ class QLearningAgent:
             
             # 5. Learn
             self.learn(current_mood_idx, action_idx, reward, next_mood_idx)
-            self.history.append(reward)
             
-            # Update env for next step (optional, but good for continuity)
+            # --- TRACKING ---
+            self.history.append(reward)
+            self.mood_history.append(current_mood_str)
+            self.action_history.append(action_category)
+            
+            # Update env for next step
             env.current_mood_index = next_mood_idx
             
             if progress_callback:

@@ -27,21 +27,21 @@ class MoodEnvironment:
 
     def get_reward(self, feedback, recommended_category):
         if feedback == "Super Like":
-            return 20
-        elif feedback == "add_to_playlist": # Explicit high reward
-            return 20
+            return 30 # Maximum Reward: "I love this song right now"
+        elif feedback == "add_to_playlist": 
+            return 20 # High Reward: "I want to keep this"
         elif feedback == "Like":
-            return 10
+            return 10 # Good match
         elif feedback == "completed":
-            return 5
+            return 5 # Passive Like
         elif feedback == "skip_mid":
-            return -2
+            return -2 # Mild disinterest
         elif feedback == "skip_immediate":
-            return -10
+            return -10 # Strong disinterest
         elif feedback == "Dislike":
-            return -10 # Increased penalty as requested
+            return -5 # General dislike (maybe song is bad, not necessarily mood)
         elif feedback == "Wrong Vibe":
-            return -10
+            return -15 # Context Error: Good song, but WRONG for this mood
         return 0
 
     def step(self, action_index, feedback):

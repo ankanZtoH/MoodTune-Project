@@ -22,27 +22,42 @@ def detect_mood_text(text):
     text_lower = text.lower()
     
     # 1. Keyword Heuristics (Override Sentiment)
-    keywords = {
-        "birthday": "happy",
-        "party": "party",
-        "celebration": "party",
-        "love": "romantic",
-        "crush": "romantic",
-        "date": "romantic",
-        "breakup": "sad",
-        "died": "sad",
-        "lost": "sad",
-        "exam": "anxious",
-        "interview": "anxious",
-        "nervous": "anxious",
-        "gym": "energetic",
-        "workout": "energetic",
-        "run": "energetic",
-        "sleep": "tired",
-        "tired": "tired",
-        "exhausted": "tired",
-        "relax": "calm",
-        "chill": "calm"
+        # HAPPY / CELEBRATION
+        "birthday": "happy", "party": "party", "celebration": "party", "fest": "party",
+        "awesome": "happy", "great": "happy", "good": "happy", "joy": "happy", "amazing": "happy",
+        
+        # ROMANTIC
+        "love": "romantic", "crush": "romantic", "date": "romantic",
+        "kiss": "romantic", "hug": "romantic", "forever": "romantic", "soulmate": "romantic",
+
+        # PARTY / FUN
+        "dance": "party", "club": "party", "drink": "party", "nightout": "party", "music": "party",
+        
+        # SAD / LOSS
+        "breakup": "sad", "died": "sad", "lost": "sad", "cry": "sad", "miss": "sad",
+        "hurt": "sad", "pain": "sad",
+        
+        # DEPRESSED / LOW
+        "lonely": "depressed", "failed": "depressed", "hopeless": "depressed", 
+        "empty": "depressed", "nothing": "depressed", "useless": "depressed",
+        
+        # ANXIOUS / STRESS
+        "exam": "anxious", "interview": "anxious", "nervous": "anxious",
+        "scared": "anxious", "worry": "anxious", "stress": "anxious", "panic": "anxious",
+        
+        # ENERGETIC / VICTORY
+        "gym": "energetic", "workout": "energetic", "run": "energetic",
+        "won": "energetic", "victory": "energetic", "success": "energetic",
+        "power": "energetic", "excited": "energetic", "pumped": "energetic",
+        
+        # ANGRY / AGGRESSION
+        "kill": "angry", "enemy": "angry", "hate": "angry", "fight": "angry",
+        "furious": "angry", "mad": "angry", "destroy": "angry", "revenge": "angry",
+        "annoying": "angry", "betray": "angry", "rage": "angry",
+        
+        # TIRED / CALM
+        "sleep": "tired", "tired": "tired", "exhausted": "tired", "drained": "tired",
+        "relax": "calm", "chill": "calm", "peace": "calm", "quiet": "calm", "meditate": "calm"
     }
     
     for word, mood in keywords.items():
