@@ -138,6 +138,7 @@ def handle_feedback_and_next(feedback):
             "new": new_v,
             "td_error": td_err
         }
+        st.session_state.agent.save_model() # Auto-save for realistic persistence
     
     prev_mood = st.session_state.detected_mood
     next_mood_name = MOODS[next_mood_idx]
@@ -164,6 +165,7 @@ def handle_feedback_only(feedback):
             MOOD_TO_INDEX.get(st.session_state.detected_mood, 0) # Fixed: Convert string to index 
          )
          st.session_state.last_learning_details = { "old": old_v, "new": new_v, "td_error": td_err }
+         st.session_state.agent.save_model() # Auto-save for realistic persistence
          
     st.toast(f"Added to Playlist! (Reward: {reward})")
 
@@ -258,6 +260,20 @@ with st.sidebar:
                 st.toast("Model Saved Successfully!")
             else:
                 st.error("Save Failed")
+        
+        # Pre-train Button
+        if st.button("Pre-train (200 Eps)"):
+            p_bar = st.progress(0, text="Training Agent...")
+            def update_progress(current, total):
+                p_bar.progress(current / total, text=f"Training Episode {current}/{total}")
+            
+            with st.spinner("Training Agent..."):
+                # Total time = 200 * 0.05 = 10 seconds
+                st.session_state.agent.train_offline(200, progress_callback=update_progress, delay=0.05)
+            
+            p_bar.empty() # Remove progress bar
+            st.toast("Training Complete! Graph Updated.")
+            st.rerun()
     with tc2:
         if st.button("Reset Brain"):
              import os
@@ -270,11 +286,39 @@ with st.sidebar:
              st.rerun()
 
     # Metrics Plot
-    st.write("**Learning Curve (Rewards):**")
+    st.write("**Learning Curve (Episode vs Reward):**")
     if st.session_state.agent.history:
-        # Calculate moving average for smoother line
-        data = pd.DataFrame({"Reward": st.session_state.agent.history})
-        st.line_chart(data)
+        import altair as alt
+        
+        # Prepare Data
+        history = st.session_state.agent.history
+        df = pd.DataFrame({
+            "Episode (per interaction)": range(1, len(history) + 1),
+            "Reward": history
+        })
+        # Calculate Moving Average (Window=10 or 10% of total)
+        window = max(5, int(len(history) * 0.05))
+        df["Trend (Avg)"] = df["Reward"].rolling(window=window, min_periods=1).mean()
+        
+        # Create Chart
+        base = alt.Chart(df).encode(x='Episode (per interaction)')
+        
+        # Raw Rewards (Scatter/Light Line)
+        raw = base.mark_circle(opacity=0.3, color='gray').encode(
+            y='Reward',
+            tooltip=['Episode (per interaction)', 'Reward']
+        )
+        
+        # Trend Line
+        trend = base.mark_line(color='#1DB954', strokeWidth=3).encode(
+            y=alt.Y('Trend (Avg)', title='Reward'),
+            tooltip=['Episode (per interaction)', 'Trend (Avg)']
+        )
+        
+        c = (raw + trend).properties(height=250).interactive()
+        
+        st.altair_chart(c, use_container_width=True)
+        st.caption(f"Green line shows the trend (Moving Average over {window} episodes).")
     else:
         st.caption("Start giving feedback to see the learning curve!")
 

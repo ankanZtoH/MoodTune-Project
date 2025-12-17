@@ -12,7 +12,7 @@ class QLearningAgent:
         
         # Initialize Q-table with zeros
         self.q_table = np.zeros((n_states, n_actions))
-                                            self.history = [] # Training History
+        self.history = [] # Training History
         
         # Try Loading, else Pre-train
         if not self.load_model():
@@ -28,9 +28,12 @@ class QLearningAgent:
 
     def load_model(self, filename="brain.npz"):
         try:
-            data = np.load(filename)                                                                                                                                                                                                                                                                                                                                                                                    
+            data = np.load(filename)
             self.q_table = data['q_table']
-            self.history = list(data['history']) # Convert back to list
+            if 'history' in data:
+                self.history = list(data['history']) # Convert back to list
+            else:
+                self.history = []
             print("Model loaded successfully.")
             return True
         except FileNotFoundError:
@@ -109,3 +112,49 @@ class QLearningAgent:
         self.q_table[state_index, action_index] = new_value
         
         return old_value, new_value, td_error
+
+    def train_offline(self, episodes=200, progress_callback=None, delay=0.0):
+        """
+        Train the agent using a simulated user for N episodes.
+        """
+        import time
+        from src.environment import MoodEnvironment
+        from src.simulation import SimulatedUser
+        from src.config import MOOD_TO_INDEX, INDEX_TO_CATEGORY, MOODS
+
+        env = MoodEnvironment()
+        sim_user = SimulatedUser()
+        
+        print(f"Starting offline training for {episodes} episodes...")
+        
+        for i in range(episodes):
+            if delay > 0:
+                time.sleep(delay)
+                
+            # 1. Start with random mood
+            current_mood_idx = env.current_mood_index
+            current_mood_str = MOODS[current_mood_idx]
+            
+            # 2. Agent chooses action
+            action_idx = self.choose_action(current_mood_idx)
+            action_category = INDEX_TO_CATEGORY[action_idx]
+            
+            # 3. Simulated User gives feedback
+            feedback = sim_user.get_feedback(current_mood_str, action_category)
+            
+            # 4. Environment Step
+            next_mood_idx, reward = env.step(action_idx, feedback)
+            
+            # 5. Learn
+            self.learn(current_mood_idx, action_idx, reward, next_mood_idx)
+            self.history.append(reward)
+            
+            # Update env for next step (optional, but good for continuity)
+            env.current_mood_index = next_mood_idx
+            
+            if progress_callback:
+                progress_callback(i + 1, episodes)
+            
+        print("Offline training complete.")
+        self.save_model() # Auto save after training
+        return True
