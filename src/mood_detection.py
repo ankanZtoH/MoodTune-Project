@@ -22,6 +22,7 @@ def detect_mood_text(text):
     text_lower = text.lower()
     
     # 1. Keyword Heuristics (Override Sentiment)
+    keywords = {
         # HAPPY / CELEBRATION
         "birthday": "happy", "party": "party", "celebration": "party", "fest": "party",
         "awesome": "happy", "great": "happy", "good": "happy", "joy": "happy", "amazing": "happy",

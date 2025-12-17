@@ -521,7 +521,7 @@ with col_right:
                 st.markdown("<br>", unsafe_allow_html=True) # Spacer
 
                 # Control Buttons - NOW ON THE RIGHT SIDE
-                b1, b2, b3, b4, b5 = st.columns(5, gap="small")
+                b1, b2, b3, b4, b5, b6 = st.columns(6, gap="small")
                 with b1:
                     if st.button("❤️", help="Like (+10)"): handle_feedback_and_next("Like")
                 with b2:
@@ -529,7 +529,7 @@ with col_right:
                 with b3:
                     if st.button("⏭️ Mid", help="Skip Song (Listened Half)"): handle_feedback_and_next("skip_mid")
                 with b4:
-                    if st.button("👎", help="Dislike (-5)"): handle_feedback_and_next("Dislike")
+                    if st.button("👎", help="Dislike (-15)"): handle_feedback_and_next("Dislike")
                 with b5:
                      if st.button("➕", help="Add to Playlist (+20)"): 
                          if not any(item['title'] == song['title'] for item in st.session_state.playlist):
@@ -538,14 +538,9 @@ with col_right:
                             # We use a special handler that DOES NOT skip the song
                             handle_feedback_only("add_to_playlist")
                          else: st.toast("Already in Playlist")
-                
-                # Extra Feedback Row
-                eb1, eb2 = st.columns(2, gap="small")
-                with eb1:
-                    if st.button("🌟 Super Like", help="Love it! (+30)"): handle_feedback_and_next("Super Like")
-                with eb2:
+                with b6:
                     current_m = st.session_state.detected_mood or "Current Mood"
-                    if st.button(f"🤔 Not for {current_m.title()}", help="Good song, but wrong vibe (-15)"): handle_feedback_and_next("Wrong Vibe")
+                    if st.button("🤔", help=f"Not for {current_m.title()} (-10)"): handle_feedback_and_next("Wrong Vibe")
 
     # Show Video Option
     st.markdown("---")

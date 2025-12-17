@@ -37,11 +37,11 @@ class MoodEnvironment:
         elif feedback == "skip_mid":
             return -2 # Mild disinterest
         elif feedback == "skip_immediate":
-            return -10 # Strong disinterest
+            return -5 # Strong disinterest, but implicit
         elif feedback == "Dislike":
-            return -5 # General dislike (maybe song is bad, not necessarily mood)
+            return -15 # Explicit Dislike (Stronger penalty)
         elif feedback == "Wrong Vibe":
-            return -15 # Context Error: Good song, but WRONG for this mood
+            return -10 # Context Error: Good song, but WRONG for this mood
         return 0
 
     def step(self, action_index, feedback):
